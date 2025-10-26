@@ -33,6 +33,37 @@
 
 ---
 
+## Phase 0 Foundations Snapshot
+
+The initial infrastructure now lives under the following structure:
+
+```
+champion_prophet/
+├── README.md
+├── pyproject.toml
+├── docs/
+│   ├── environment.md
+│   ├── baselines.md
+│   └── analysis/
+│       └── data_qa_report.md
+├── scripts/
+│   └── data_qa.py
+└── src/champion_prophet/
+    ├── __init__.py
+    └── config.py
+```
+
+- `README.md` – entry point describing the Prophet challenger focus and where to start.
+- `pyproject.toml` – pinned dependency manifest (Prophet, CmdStanPy, pandas, etc.) with editable install for experimentation.
+- `docs/environment.md` – setup guide covering Python version, Stan toolchain prerequisites, and verification steps.
+- `docs/baselines.md` – MAE/RMSE guard rails for the AutoARIMA champion and naive baselines.
+- `docs/analysis/data_qa_report.md` – generated QA summary highlighting data coverage, null counts, and hourly completeness.
+- `scripts/data_qa.py` – CLI utility to regenerate the QA report with optional date bounds or database overrides.
+- `src/champion_prophet/__init__.py` – package export surface for shared utilities.
+- `src/champion_prophet/config.py` – settings loader, directory bootstrapper, logging initializer, and reproducible seeding helpers.
+
+---
+
 ## Success Criteria Checklist
 - MAE < 38.00 and <116.11 (beats naive & MA7 baselines)
 - MAE within ±10% of champion (≤37.03) or better

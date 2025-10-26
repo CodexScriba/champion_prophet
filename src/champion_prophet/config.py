@@ -40,7 +40,7 @@ def _env_int(name: str, default: int) -> int:
     try:
         return int(value)
     except ValueError as exc:  # pragma: no cover - defensive branch
-        raise ValueError(f"Environment variable {name} must be an integer") from exc
+        raise ValueError(f"Environment variable {name}={value!r} must be an integer") from exc
 
 
 @dataclass(slots=True)
@@ -82,14 +82,6 @@ def set_global_seed(seed: int) -> None:
 
     random.seed(seed)
     np.random.seed(seed)
-    try:  # torch is optional but used by some downstream tools
-        import torch
-
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():  # pragma: no cover - depends on runtime
-            torch.cuda.manual_seed_all(seed)
-    except ImportError:
-        pass
 
 
 def configure_logging(level: str | int | None = None) -> None:

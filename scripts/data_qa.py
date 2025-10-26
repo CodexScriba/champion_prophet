@@ -4,17 +4,22 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sqlite3
 import sys
 from pathlib import Path
 
+try:
+    from champion_prophet.config import Settings, configure_logging, ensure_directories, load_settings
+except ImportError:  # Fallback for non-editable environments
+    REPO_ROOT = Path(__file__).resolve().parents[1]
+    SRC_PATH = REPO_ROOT / "src"
+    if str(SRC_PATH) not in sys.path:
+        sys.path.insert(0, str(SRC_PATH))
+    from champion_prophet.config import Settings, configure_logging, ensure_directories, load_settings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SRC_PATH = REPO_ROOT / "src"
-if str(SRC_PATH) not in sys.path:
-    sys.path.insert(0, str(SRC_PATH))
-
-from champion_prophet.config import Settings, ensure_directories, load_settings  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,6 +49,20 @@ def _interval_clause(start: str | None, end: str | None) -> tuple[str, tuple[str
     return (f"WHERE {sql}" if sql else "", tuple(params))
 
 
+def _extend_clause(clause: str, condition: str) -> str:
+    """Append a predicate to an optional WHERE clause."""
+
+    return f"{clause} AND {condition}" if clause else f"WHERE {condition}"
+
+
+def _quote_identifier(identifier: str) -> str:
+    safe = identifier.replace("_", "")
+    if not safe.isalnum():  # pragma: no cover - defensive guard
+        raise ValueError(f"Unsafe identifier: {identifier!r}")
+    escaped = identifier.replace('"', '""')
+    return f'"{escaped}"'
+
+
 def fetch_daily_summary(conn: sqlite3.Connection, start: str | None, end: str | None) -> dict[str, object]:
     clause, params = _interval_clause(start, end)
     cursor = conn.cursor()
@@ -61,7 +80,7 @@ def fetch_daily_summary(conn: sqlite3.Connection, start: str | None, end: str | 
         f"""
         SELECT COUNT(*)
         FROM days
-        {clause} {'AND' if clause else 'WHERE'} has_email_data = 1
+        {_extend_clause(clause, 'has_email_data = 1')}
         """,
         params,
     )
@@ -71,7 +90,7 @@ def fetch_daily_summary(conn: sqlite3.Connection, start: str | None, end: str | 
         f"""
         SELECT COUNT(*)
         FROM days
-        {clause} {'AND' if clause else 'WHERE'} has_sla_data = 1
+        {_extend_clause(clause, 'has_sla_data = 1')}
         """,
         params,
     )
@@ -88,11 +107,13 @@ def fetch_daily_summary(conn: sqlite3.Connection, start: str | None, end: str | 
 
 def fetch_null_counts(conn: sqlite3.Connection, table: str) -> dict[str, int]:
     cursor = conn.cursor()
-    cursor.execute(f"PRAGMA table_info({table})")
+    table_sql = _quote_identifier(table)
+    cursor.execute(f"PRAGMA table_info({table_sql})")
     columns = [row[1] for row in cursor.fetchall()]
     nulls: dict[str, int] = {}
     for column in columns:
-        cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE {column} IS NULL")
+        column_sql = _quote_identifier(column)
+        cursor.execute(f"SELECT COUNT(*) FROM {table_sql} WHERE {column_sql} IS NULL")
         nulls[column] = cursor.fetchone()[0]
     return nulls
 
@@ -147,7 +168,7 @@ def fetch_hourly_coverage(conn: sqlite3.Connection, start: str | None, end: str 
         f"""
         SELECT COUNT(*)
         FROM days
-        {clause} {'AND' if clause else 'WHERE'} has_sla_data = 1
+        {_extend_clause(clause, 'has_sla_data = 1')}
         """,
         params,
     )
@@ -214,14 +235,19 @@ def render_report(settings: Settings, output: Path, summary: dict[str, object], 
     else:
         lines.append("- All SLA days contain full 24 hourly rows.")
 
-    output.write_text("\n".join(lines), encoding="utf-8")
+    output.write_text("\n".join(lines))
 
 
 def main() -> None:
+    configure_logging()
+    logger = logging.getLogger(__name__)
+
     args = parse_args()
     settings = load_settings()
     if args.db_path is not None:
         settings.database_path = args.db_path
+
+    logger.info("Generating QA report from %s", settings.database_path)
 
     with sqlite3.connect(settings.database_path) as conn:
         summary = fetch_daily_summary(conn, args.start_date, args.end_date)
@@ -230,6 +256,7 @@ def main() -> None:
         hourly = fetch_hourly_coverage(conn, args.start_date, args.end_date)
 
     render_report(settings, args.output, summary, daily_nulls, duplicates, hourly, args.start_date, args.end_date)
+    logger.info("QA report written to %s", args.output)
 
 
 if __name__ == "__main__":

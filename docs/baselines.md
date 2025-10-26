@@ -9,7 +9,7 @@ Reference metrics needed during Phase 0 to judge Prophet progress.
 - Bias (after calibration): **~0.00**
 - Coverage (80% interval): **76.8%**
 - Horizon: **14 days**
-- Training window: **154 days** (2025-05-18 → 2025-10-23)
+- Training window: **156 observed days** (2025-05-18 → 2025-10-25; five calendar days absent within the range)
 - Validation: **4-fold expanding window**
 - Regressors: DOW one-hot (Mon–Sat), `is_holiday`, `pre_holiday`, `post_holiday`
 

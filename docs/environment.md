@@ -7,7 +7,7 @@ AutoARIMA stack.
 
 ## Requirements
 
-- Python 3.10 or 3.11 (3.12 is currently unsupported by Prophet)
+- Python 3.10-3.12 (Prophet 1.1.5 ships wheels for all three versions)
 - C++14 toolchain for Stan/CmdStan builds (`gcc`/`clang` + `make`)
 - 4 GB free disk space for the CmdStan toolchain cache
 
