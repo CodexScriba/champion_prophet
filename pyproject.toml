@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "champion-prophet"
+version = "0.1.0"
+description = "Prophet challenger tooling for email volume forecasting"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "prophet==1.1.5",
+    "cmdstanpy==1.2.3",
+    "pandas==2.2.2",
+    "numpy==1.26.4",
+    "scikit-learn==1.4.2",
+    "matplotlib==3.8.4",
+    "plotly==5.24.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel==6.29.5",
+    "black==24.8.0",
+    "ruff==0.6.8"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
